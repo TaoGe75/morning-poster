@@ -1,0 +1,6 @@
+assets/
+cloud/fonts/
+cloud/_photo.jpg
+cloud/_info.json
+__pycache__/
+*.pyc

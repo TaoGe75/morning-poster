@@ -1,0 +1,52 @@
+name: daily-morning-poster
+
+on:
+  schedule:
+    - cron: "45 0 * * *"   # UTC 00:45 = 北京时间 08:45
+  workflow_dispatch: {}     # 支持手动触发测试
+
+permissions:
+  contents: write
+
+concurrency:
+  group: daily-poster
+  cancel-in-progress: false
+
+jobs:
+  poster:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install deps
+        run: pip install --disable-pip-version-check pillow lunar_python
+
+      - name: Download font (霞鹜文楷)
+        run: |
+          mkdir -p cloud/fonts
+          curl -sL --retry 3 --retry-delay 3 -o cloud/fonts/LXGWWenKai-Regular.ttf \
+            "https://github.com/lxgw/LxgwWenKai/releases/download/v1.520/LXGWWenKai-Regular.ttf"
+          ls -lh cloud/fonts
+
+      - name: Generate poster
+        env:
+          PEXELS_KEY: ${{ secrets.PEXELS_KEY }}
+        run: python cloud/poster.py
+
+      - name: Commit poster
+        run: |
+          git config user.name "morning-bot"
+          git config user.email "bot@users.noreply.github.com"
+          git add posters/ cloud/_info.json
+          git commit -m "poster $(date -u -d '+8 hours' +%F)" || echo "nothing to commit"
+          git push
+
+      - name: Push to WeChat (Server酱)
+        env:
+          SERVERCHAN_KEY: ${{ secrets.SERVERCHAN_KEY }}
+        run: python cloud/push_wechat.py
