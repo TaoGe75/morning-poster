@@ -80,6 +80,10 @@ def main():
     desp.append(f"{info['date_line']}　{info['lunar_line']}")
     if info.get("jieqi_line"):
         desp.append(info["jieqi_line"])
+    src = info.get("photo_source", "")
+    if src.startswith("commons:"):
+        artist = src.split(":", 1)[1].strip()
+        desp.append(f"📷 图：{artist or 'Wikimedia'}（Wikimedia Commons）")
     desp = "\n\n".join(desp)
 
     push_serverchan(title, desp, key)
