@@ -170,7 +170,7 @@ def load_fonts():
     wenkai_med = fdir / "LXGWWenKai-Medium.ttf"
     win_kai = "C:/Windows/Fonts/simkai.ttf"
     win_hei = "C:/Windows/Fonts/simhei.ttf"
-    bold = _font(wenkai_med, win_hei, size=64)
+    bold = _font(wenkai_med, wenkai_reg, win_hei, win_kai, size=64)
     reg = _font(wenkai_reg, win_kai, size=30)
     return {
         "date": ImageFont.truetype(bold, 64),
