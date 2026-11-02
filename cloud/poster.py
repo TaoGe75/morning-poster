@@ -7,6 +7,7 @@
 import json
 import math
 import random
+import re
 import sys
 import urllib.request
 from datetime import date, timedelta
@@ -126,7 +127,7 @@ CITY_QUERIES = ["city skyline morning", "city sunrise", "urban skyline dawn",
 
 
 def fetch_photo(d, out):
-    """三层图源：Pexels(有key) → Openverse(免key) → 本地照片池"""
+    """三层图源：Pexels(有key) → Wikimedia Commons(免key) → 本地照片池"""
     import os
     # 1) Pexels（官方 key，若后续开放申请）
     key = os.environ.get("PEXELS_KEY", "").strip()
@@ -148,32 +149,43 @@ def fetch_photo(d, out):
         except Exception as e:
             print("Pexels 失败，转 Openverse:", e)
 
-    # 2) Openverse（免 key，聚合 Flickr/Wikimedia 等真实摄影图）
+    # 2) Wikimedia Commons（永久免 key，真实摄影图）
     try:
         q = random.Random(d.toordinal()).choice(CITY_QUERIES)  # 按日期确定性选词
         params = urllib.parse.urlencode({
-            "q": q, "orientation": "portrait",
-            "license_type": "commercial", "page_size": 50,
-            "page": (d.toordinal() % 10) + 1,
+            "action": "query", "format": "json", "generator": "search",
+            "gsrsearch": f"filetype:bitmap {q}", "gsrnamespace": "6",
+            "gsrlimit": "50", "prop": "imageinfo",
+            "iiprop": "url|size|extmetadata", "iiurlwidth": "1200",
         })
         req = urllib.request.Request(
-            "https://api.openverse.org/v1/images/?" + params,
-            headers={"User-Agent": "morning-poster/1.0 (github-actions)"})
+            "https://commons.wikimedia.org/w/api.php?" + params,
+            headers={"User-Agent": "morning-poster/1.0 (personal daily poster)"})
         data = json.loads(urllib.request.urlopen(req, timeout=30).read())
-        # 只要够大够竖的图，按日期确定性挑选
-        cands = [p for p in data.get("results", [])
-                 if p.get("width", 0) >= 1000 and p.get("height", 0) >= p.get("width", 1)]
+        pages = list(data.get("query", {}).get("pages", {}).values())
+        cands = []
+        for p in pages:
+            try:
+                ii = p["imageinfo"][0]
+                if ii.get("width", 0) >= 900 and ii.get("height", 0) >= ii.get("width", 1):
+                    cands.append(ii)
+            except (KeyError, IndexError, TypeError):
+                continue
         if cands:
-            ph = cands[d.toordinal() % len(cands)]
-            req2 = urllib.request.Request(
-                ph["url"], headers={"User-Agent": "Mozilla/5.0"})
+            ii = cands[d.toordinal() % len(cands)]
+            src = ii.get("thumburl") or ii["url"]
+            req2 = urllib.request.Request(src, headers={"User-Agent": "Mozilla/5.0"})
             raw = urllib.request.urlopen(req2, timeout=90).read()
             if len(raw) > 100000:
                 open(out, "wb").write(raw)
-                return f"openverse:{ph.get('id', '')[:8]}({ph.get('license', '?')})"
-        print("Openverse 无合适候选")
+                # 提取作者用于署名
+                meta = ii.get("extmetadata", {}) or {}
+                artist = re.sub(r"<[^>]+>", "", meta.get("Artist", {}).get("value", "")).strip()
+                artist = re.sub(r"\s+", " ", artist)[:60]
+                return f"commons:{artist}" if artist else "commons"
+        print("Commons 无合适候选")
     except Exception as e:
-        print("Openverse 失败，退回照片池:", e)
+        print("Commons 失败，退回照片池:", e)
 
     # 3) 内置照片池（保底，永不断供）
     pool = sorted((BASE / "pool").glob("*.jpg"))
