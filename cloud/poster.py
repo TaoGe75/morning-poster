@@ -121,14 +121,18 @@ def pick_quote(d):
 
 
 # ---------- 图源 ----------
+CITY_QUERIES = ["city skyline morning", "city sunrise", "urban skyline dawn",
+                "city skyline golden hour", "cityscape morning light"]
+
+
 def fetch_photo(d, out):
-    """优先 Pexels（有 key 时），否则本地照片池轮换"""
+    """三层图源：Pexels(有key) → Openverse(免key) → 本地照片池"""
     import os
+    # 1) Pexels（官方 key，若后续开放申请）
     key = os.environ.get("PEXELS_KEY", "").strip()
     if key:
         try:
-            q = random.choice(["city sunrise", "city skyline morning",
-                               "city street autumn", "urban dawn"])
+            q = random.choice(CITY_QUERIES)
             url = ("https://api.pexels.com/v1/search?query=" + urllib.parse.quote(q)
                    + "&orientation=portrait&per_page=20&page="
                    + str((d.toordinal() % 30) + 1))
@@ -142,7 +146,36 @@ def fetch_photo(d, out):
                 open(out, "wb").write(urllib.request.urlopen(req2, timeout=60).read())
                 return "pexels"
         except Exception as e:
-            print("Pexels 失败，退回照片池:", e)
+            print("Pexels 失败，转 Openverse:", e)
+
+    # 2) Openverse（免 key，聚合 Flickr/Wikimedia 等真实摄影图）
+    try:
+        q = random.Random(d.toordinal()).choice(CITY_QUERIES)  # 按日期确定性选词
+        params = urllib.parse.urlencode({
+            "q": q, "orientation": "portrait",
+            "license_type": "commercial", "page_size": 50,
+            "page": (d.toordinal() % 10) + 1,
+        })
+        req = urllib.request.Request(
+            "https://api.openverse.org/v1/images/?" + params,
+            headers={"User-Agent": "morning-poster/1.0 (github-actions)"})
+        data = json.loads(urllib.request.urlopen(req, timeout=30).read())
+        # 只要够大够竖的图，按日期确定性挑选
+        cands = [p for p in data.get("results", [])
+                 if p.get("width", 0) >= 1000 and p.get("height", 0) >= p.get("width", 1)]
+        if cands:
+            ph = cands[d.toordinal() % len(cands)]
+            req2 = urllib.request.Request(
+                ph["url"], headers={"User-Agent": "Mozilla/5.0"})
+            raw = urllib.request.urlopen(req2, timeout=90).read()
+            if len(raw) > 100000:
+                open(out, "wb").write(raw)
+                return f"openverse:{ph.get('id', '')[:8]}({ph.get('license', '?')})"
+        print("Openverse 无合适候选")
+    except Exception as e:
+        print("Openverse 失败，退回照片池:", e)
+
+    # 3) 内置照片池（保底，永不断供）
     pool = sorted((BASE / "pool").glob("*.jpg"))
     if not pool:
         raise RuntimeError("照片池为空")
