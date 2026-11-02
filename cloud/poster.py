@@ -217,11 +217,13 @@ def load_fonts():
     win_hei = "C:/Windows/Fonts/simhei.ttf"
     bold = _font(wenkai_med, wenkai_reg, win_hei, win_kai, size=64)
     reg = _font(wenkai_reg, win_kai, size=30)
+    # 金句：加粗（Medium 字重）+ 大一号
+    quote = _font(wenkai_med, wenkai_reg, win_kai, size=64)
     return {
         "date": ImageFont.truetype(bold, 64),
         "sub": ImageFont.truetype(bold, 40),
-        "quote": ImageFont.truetype(reg, 52),
-        "attr": ImageFont.truetype(reg, 30),
+        "quote": ImageFont.truetype(quote, 64),
+        "attr": ImageFont.truetype(reg, 32),
     }
 
 
@@ -297,11 +299,11 @@ def compose(photo_path, out_path, d):
     lines = q["text"].split("，")
     if len(lines) < 2:
         lines = [q["text"][:len(q["text"])//2], q["text"][len(q["text"])//2:]]
-    step = 84
-    start = qy - (len(lines) - 1) * step // 2 - 20
+    step = 96
+    start = qy - (len(lines) - 1) * step // 2 - 24
     for i, ln in enumerate(lines):
         text_with_shadow(draw, (W // 2, start + i * step), ln, f["quote"])
-    text_with_shadow(draw, (W // 2, start + len(lines) * step + 14),
+    text_with_shadow(draw, (W // 2, start + len(lines) * step + 10),
                      f"——{q['author']}《{q['work']}》", f["attr"])
 
     draw_logo(img, BASE / "fonts" / "LXGWWenKai-Regular.ttf")

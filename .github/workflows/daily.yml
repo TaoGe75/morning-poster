@@ -35,6 +35,8 @@ jobs:
           mkdir -p cloud/fonts
           curl -sL --retry 3 --retry-delay 3 -o cloud/fonts/LXGWWenKai-Regular.ttf \
             "https://github.com/lxgw/LxgwWenKai/releases/download/v1.520/LXGWWenKai-Regular.ttf"
+          curl -sL --retry 3 --retry-delay 3 -o cloud/fonts/LXGWWenKai-Medium.ttf \
+            "https://github.com/lxgw/LxgwWenKai/releases/download/v1.520/LXGWWenKai-Medium.ttf"
           ls -lh cloud/fonts
 
       - name: Generate poster
