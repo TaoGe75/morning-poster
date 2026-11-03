@@ -2,7 +2,7 @@ name: daily-morning-poster
 
 on:
   schedule:
-    - cron: "45 0 * * *"   # UTC 00:45 = 北京时间 08:45
+    - cron: "0 23 * * *"   # UTC 23:00 = 北京时间 07:00（GitHub 定时常有延迟，提前到 7 点保准点）
   workflow_dispatch:
     inputs:
       push_wechat:

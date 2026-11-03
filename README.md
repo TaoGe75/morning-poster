@@ -1,6 +1,6 @@
 # 每日早安海报
 
-每天北京时间 8:45，GitHub Actions 自动：拉一张城市风光实拍照片 → 叠上
+每天北京时间 7:00，GitHub Actions 自动：拉一张城市风光实拍照片 → 叠上
 日期 / 农历 / 节气七十二候 / 唐诗宋词元曲励志金句 / 「涛哥的小舟」徽标 →
 推送到你微信（Server酱）。全程云端运行，与本地电脑无关。
 
@@ -12,7 +12,7 @@
    - Name: `SERVERCHAN_KEY`
    - Value: 你的 Server酱 SendKey（sctapi.ftqq.com 里的 SCT 开头串）
 3. 进 Actions 标签页，选中 daily-morning-poster → Run workflow 手动跑一次验证。
-4. 之后每天 08:45（北京）自动推送。
+4. 之后每天 07:00（北京）自动推送。
 
 ## 可选增强
 
