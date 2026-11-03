@@ -37,8 +37,8 @@ jobs:
             "https://github.com/lxgw/LxgwWenKai/releases/download/v1.520/LXGWWenKai-Regular.ttf"
           curl -sL --retry 3 --retry-delay 3 -o cloud/fonts/LXGWWenKai-Medium.ttf \
             "https://github.com/lxgw/LxgwWenKai/releases/download/v1.520/LXGWWenKai-Medium.ttf"
-          curl -sL --retry 3 --retry-delay 3 -o cloud/fonts/ZhiMangXing-Regular.ttf \
-            "https://cdn.jsdelivr.net/gh/google/fonts@main/ofl/zhimangxing/ZhiMangXing-Regular.ttf"
+          curl -sL --retry 3 --retry-delay 3 -o cloud/fonts/MaShanZheng-Regular.ttf \
+            "https://cdn.jsdelivr.net/gh/google/fonts@main/ofl/mashanzheng/MaShanZheng-Regular.ttf"
           ls -lh cloud/fonts
 
       - name: Generate poster

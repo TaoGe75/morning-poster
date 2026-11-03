@@ -217,10 +217,10 @@ def load_fonts():
     win_hei = "C:/Windows/Fonts/simhei.ttf"
     bold = _font(wenkai_med, wenkai_reg, win_hei, win_kai, size=64)
     reg = _font(wenkai_reg, win_kai, size=30)
-    # 金句：行楷加粗（本机用华文行楷，云端用免费可商用的志莽行书）
+    # 金句：毛笔楷书（本机用华文行楷，云端用免费可商用的马善政），不加粗
     xingkai_win = "C:/Windows/Fonts/STXINGKA.TTF"
-    xingkai_free = fdir / "ZhiMangXing-Regular.ttf"
-    quote = _font(xingkai_win, xingkai_free, wenkai_med, wenkai_reg, win_kai, size=64)
+    mashan = fdir / "MaShanZheng-Regular.ttf"
+    quote = _font(xingkai_win, mashan, wenkai_med, wenkai_reg, win_kai, size=64)
     return {
         "date": ImageFont.truetype(bold, 64),
         "sub": ImageFont.truetype(bold, 40),
@@ -307,9 +307,7 @@ def compose(photo_path, out_path, d):
     step = 96
     start = qy - (len(lines) - 1) * step // 2 - 24
     for i, ln in enumerate(lines):
-        # 金句加粗：Medium 字重 + 3px 同色描边（文楷无 Bold 权重，描边替代）
-        text_with_shadow(draw, (W // 2, start + i * step), ln, f["quote"],
-                         stroke=3)
+        text_with_shadow(draw, (W // 2, start + i * step), ln, f["quote"])
     text_with_shadow(draw, (W // 2, start + len(lines) * step + 10),
                      f"——{q['author']}《{q['work']}》", f["attr"])
 
