@@ -240,7 +240,18 @@ def text_with_shadow(draw, xy, text, font, anchor="mm",
 
 
 def draw_logo(img, font_path):
-    """右下「涛哥的小舟」徽标"""
+    """右下角徽标水印：优先用定稿圆形徽章 assets/badge.png，缺失时退回程序绘制"""
+    badge_path = BASE.parent / "assets" / "badge.png"
+    if badge_path.exists():
+        size = 132
+        badge = Image.open(badge_path).convert("RGBA")
+        badge = badge.resize((size, size), Image.LANCZOS)
+        # 轻微降透明度，更像水印而不是贴纸
+        alpha = badge.getchannel("A").point(lambda a: int(a * 0.92))
+        badge.putalpha(alpha)
+        img.alpha_composite(badge, (W - size - 32, H - size - 32))
+        return
+
     LW, LH = 236, 78
     logo = Image.new("RGBA", (LW, LH), (0, 0, 0, 0))
     d = ImageDraw.Draw(logo)

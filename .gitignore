@@ -1,4 +1,5 @@
-assets/
+assets/*
+!assets/badge.png
 cloud/fonts/
 cloud/_photo.jpg
 __pycache__/
