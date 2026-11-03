@@ -6,6 +6,7 @@ jsDelivr 对新提交有缓存延迟，所以推送前先轮询预热，任一�
 """
 import json
 import os
+import subprocess
 import time
 import urllib.parse
 import urllib.request
@@ -15,11 +16,25 @@ BASE = Path(__file__).parent
 REPO = os.environ.get("GITHUB_REPOSITORY", "")  # owner/name
 
 # jsDelivr 主站 / Fastly 备用 / GitHub 原链（国内可能不通，作最后兜底）
+# 用 commit 号而非 @main，避免 CDN 缓存住同一天的旧图
 CDN_TEMPLATES = [
-    "https://cdn.jsdelivr.net/gh/{repo}@main/posters/poster_{d}.jpg",
-    "https://fastly.jsdelivr.net/gh/{repo}@main/posters/poster_{d}.jpg",
-    "https://raw.githubusercontent.com/{repo}/main/posters/poster_{d}.jpg",
+    "https://cdn.jsdelivr.net/gh/{repo}@{rev}/posters/poster_{d}.jpg",
+    "https://fastly.jsdelivr.net/gh/{repo}@{rev}/posters/poster_{d}.jpg",
+    "https://raw.githubusercontent.com/{repo}/{rev}/posters/poster_{d}.jpg",
 ]
+
+
+def _rev():
+    """当前 HEAD commit，用于击穿 CDN 缓存；取不到就用时间戳"""
+    try:
+        out = subprocess.run(["git", "rev-parse", "HEAD"], capture_output=True,
+                             text=True, cwd=str(BASE))
+        sha = out.stdout.strip()
+        if out.returncode == 0 and len(sha) >= 7:
+            return sha
+    except Exception:
+        pass
+    return f"main?v={int(time.time())}"
 
 
 def _probe(url, timeout=8):
@@ -35,7 +50,7 @@ def resolve_image_url(d):
     """轮询预热，返回第一个真正可访问的图片地址"""
     if not REPO:
         return ""
-    urls = [t.format(repo=REPO, d=d) for t in CDN_TEMPLATES]
+    urls = [t.format(repo=REPO, d=d, rev=_rev()) for t in CDN_TEMPLATES]
     for attempt in range(8):          # 最多 8 轮 × 8 秒 ≈ 1 分钟
         for u in urls:
             if _probe(u):
