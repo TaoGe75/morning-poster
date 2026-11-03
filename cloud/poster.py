@@ -217,8 +217,10 @@ def load_fonts():
     win_hei = "C:/Windows/Fonts/simhei.ttf"
     bold = _font(wenkai_med, wenkai_reg, win_hei, win_kai, size=64)
     reg = _font(wenkai_reg, win_kai, size=30)
-    # 金句：加粗（Medium 字重）+ 大一号
-    quote = _font(wenkai_med, wenkai_reg, win_kai, size=64)
+    # 金句：行楷加粗（本机用华文行楷，云端用免费可商用的志莽行书）
+    xingkai_win = "C:/Windows/Fonts/STXINGKA.TTF"
+    xingkai_free = fdir / "ZhiMangXing-Regular.ttf"
+    quote = _font(xingkai_win, xingkai_free, wenkai_med, wenkai_reg, win_kai, size=64)
     return {
         "date": ImageFont.truetype(bold, 64),
         "sub": ImageFont.truetype(bold, 40),
