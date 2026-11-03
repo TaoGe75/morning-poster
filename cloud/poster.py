@@ -228,10 +228,13 @@ def load_fonts():
 
 
 def text_with_shadow(draw, xy, text, font, anchor="mm",
-                     fill=(255, 255, 255, 255), shadow=(0, 0, 0, 160)):
+                     fill=(255, 255, 255, 255), shadow=(0, 0, 0, 160),
+                     stroke=0):
     x, y = xy
-    draw.text((x + 3, y + 3), text, font=font, fill=shadow, anchor=anchor)
-    draw.text((x, y), text, font=font, fill=fill, anchor=anchor)
+    draw.text((x + 3, y + 3), text, font=font, fill=shadow, anchor=anchor,
+              stroke_width=stroke, stroke_fill=shadow)
+    draw.text((x, y), text, font=font, fill=fill, anchor=anchor,
+              stroke_width=stroke, stroke_fill=fill)
 
 
 def draw_logo(img, font_path):
@@ -302,7 +305,9 @@ def compose(photo_path, out_path, d):
     step = 96
     start = qy - (len(lines) - 1) * step // 2 - 24
     for i, ln in enumerate(lines):
-        text_with_shadow(draw, (W // 2, start + i * step), ln, f["quote"])
+        # 金句加粗：Medium 字重 + 3px 同色描边（文楷无 Bold 权重，描边替代）
+        text_with_shadow(draw, (W // 2, start + i * step), ln, f["quote"],
+                         stroke=3)
     text_with_shadow(draw, (W // 2, start + len(lines) * step + 10),
                      f"——{q['author']}《{q['work']}》", f["attr"])
 
