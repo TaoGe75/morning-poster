@@ -209,6 +209,15 @@ def _font(*candidates, size):
     return "C:/Windows/Fonts/simkai.ttf"
 
 
+# 全局字号系数：1.12 ≈ 所有文字放大一档；以后整体调大调小只改这一个数
+TEXT_SCALE = 1.12
+
+
+def _sz(base):
+    """按全局系数换算字号/间距"""
+    return int(round(base * TEXT_SCALE))
+
+
 def load_fonts():
     fdir = BASE / "fonts"
     wenkai_reg = fdir / "LXGWWenKai-Regular.ttf"
@@ -217,15 +226,15 @@ def load_fonts():
     win_hei = "C:/Windows/Fonts/simhei.ttf"
     bold = _font(wenkai_med, wenkai_reg, win_hei, win_kai, size=64)
     reg = _font(wenkai_reg, win_kai, size=30)
-    # 金句：毛笔楷书（本机用华文行楷，云端用免费可商用的马善政），不加粗
-    xingkai_win = "C:/Windows/Fonts/STXINGKA.TTF"
+    # 金句：毛笔楷书（云端马善政，本机缺失时退回华文行楷），不加粗
     mashan = fdir / "MaShanZheng-Regular.ttf"
-    quote = _font(xingkai_win, mashan, wenkai_med, wenkai_reg, win_kai, size=64)
+    xingkai_win = "C:/Windows/Fonts/STXINGKA.TTF"
+    quote = _font(mashan, xingkai_win, wenkai_med, wenkai_reg, win_kai, size=64)
     return {
-        "date": ImageFont.truetype(bold, 64),
-        "sub": ImageFont.truetype(bold, 40),
-        "quote": ImageFont.truetype(quote, 64),
-        "attr": ImageFont.truetype(reg, 32),
+        "date": ImageFont.truetype(bold, _sz(64)),
+        "sub": ImageFont.truetype(bold, _sz(40)),
+        "quote": ImageFont.truetype(quote, _sz(64)),
+        "attr": ImageFont.truetype(reg, _sz(32)),
     }
 
 
@@ -268,7 +277,7 @@ def draw_logo(img, font_path):
     d.arc([cx+8, cy+8, cx+30, cy+21], 200, 340, fill=gold, width=2)
     font = ImageFont.truetype(
         _font(BASE / "fonts" / "LXGWWenKai-Regular.ttf",
-              "C:/Windows/Fonts/simkai.ttf", size=32), 32)
+              "C:/Windows/Fonts/simkai.ttf", size=32), _sz(32))
     d.text((76, LH // 2), "涛哥的小舟", font=font,
            fill=(245, 238, 226, 255), anchor="lm")
     img.alpha_composite(logo, (W - LW - 24, H - LH - 24))
@@ -306,20 +315,20 @@ def compose(photo_path, out_path, d):
     # 顶部三行
     y0 = 96
     text_with_shadow(draw, (W // 2, y0), date_line, f["date"])
-    text_with_shadow(draw, (W // 2, y0 + 92), lunar_line, f["sub"])
+    text_with_shadow(draw, (W // 2, y0 + _sz(92)), lunar_line, f["sub"])
     if jieqi_line:
-        text_with_shadow(draw, (W // 2, y0 + 160), jieqi_line, f["sub"])
+        text_with_shadow(draw, (W // 2, y0 + _sz(160)), jieqi_line, f["sub"])
 
     # 金句（约 42% 高度处）
     qy = int(H * 0.42)
     lines = q["text"].split("，")
     if len(lines) < 2:
         lines = [q["text"][:len(q["text"])//2], q["text"][len(q["text"])//2:]]
-    step = 96
-    start = qy - (len(lines) - 1) * step // 2 - 24
+    step = _sz(96)
+    start = qy - (len(lines) - 1) * step // 2 - _sz(24)
     for i, ln in enumerate(lines):
         text_with_shadow(draw, (W // 2, start + i * step), ln, f["quote"])
-    text_with_shadow(draw, (W // 2, start + len(lines) * step + 10),
+    text_with_shadow(draw, (W // 2, start + len(lines) * step + _sz(14)),
                      f"——{q['author']}《{q['work']}》", f["attr"])
 
     draw_logo(img, BASE / "fonts" / "LXGWWenKai-Regular.ttf")
