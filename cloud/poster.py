@@ -209,8 +209,8 @@ def _font(*candidates, size):
     return "C:/Windows/Fonts/simkai.ttf"
 
 
-# 全局字号系数：1.12 ≈ 所有文字放大一档；以后整体调大调小只改这一个数
-TEXT_SCALE = 1.12
+# 全局字号系数：1.25 ≈ 在原版基础上放大两档；以后整体调大调小只改这一个数
+TEXT_SCALE = 1.25
 
 
 def _sz(base):
