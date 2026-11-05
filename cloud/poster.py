@@ -127,9 +127,18 @@ CITY_QUERIES = ["city skyline morning", "city sunrise", "urban skyline dawn",
 
 
 def fetch_photo(d, out):
-    """三层图源：Pexels(有key) → Wikimedia Commons(免key) → 本地照片池"""
+    """三层图源：本地照片池(含涛哥实拍，优先) → Wikimedia Commons(免key) → Pexels(有key)"""
     import os
-    # 1) Pexels（官方 key，若后续开放申请）
+
+    # 1) 内置照片池（涛哥实拍 + 储备图，永不断供，15 天一轮）
+    pool = sorted((BASE / "pool").glob("*.jpg"))
+    if pool:
+        random.seed(d.toordinal())          # 每天确定性地选一张
+        chosen = pool[d.toordinal() % len(pool)]
+        open(out, "wb").write(chosen.read_bytes())
+        return f"pool:{chosen.stem}"
+
+    # 2) Pexels（官方 key，若后续开放申请）
     key = os.environ.get("PEXELS_KEY", "").strip()
     if key:
         try:
@@ -187,7 +196,7 @@ def fetch_photo(d, out):
     except Exception as e:
         print("Commons 失败，退回照片池:", e)
 
-    # 3) 内置照片池（保底，永不断供）
+    # 3) 内置照片池兜底（正常不会走到，池子非空时第 1 层已返回）
     pool = sorted((BASE / "pool").glob("*.jpg"))
     if not pool:
         raise RuntimeError("照片池为空")

@@ -26,13 +26,17 @@
 
 ## 可选增强
 
+- **图源顺序（2026-11-05 调整）**：本地照片池（`cloud/pool/`，含涛哥实拍
+  6 张，`taoge-` 前缀）优先，15 天一轮；池子为空才退回
+  Wikimedia Commons → Pexels。想把网图调回第一优先，改 `cloud/poster.py`
+  里 `fetch_photo` 的层序即可。
 - **Pexels 图源**：注册 pexels.com/api 拿免费 key，加 Secret `PEXELS_KEY`，
-  即可每天搜索全新的城市晨光照片；不配则用内置照片池轮换（6 张，每 6 天一轮）。
+  即可用作备用图源；不配也能跑（还有 Commons 兜底）。
 
 ## 文件说明
 
 - `cloud/poster.py` — 生成海报（农历/节气七十二候/金句轮换/合成）
 - `cloud/push_wechat.py` — Server酱 推送
 - `cloud/quotes.json` — 金句库（可自行增删，按日期自动轮换）
-- `cloud/pool/` — 内置城市风光照片池
+- `cloud/pool/` — 内置城市风光照片池（涛哥实拍 6 张 + 储备图，第一优先图源）
 - `posters/` — 每日产出（推送到微信的图走 jsdelivr CDN 引用此目录）
