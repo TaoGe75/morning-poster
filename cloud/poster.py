@@ -221,6 +221,10 @@ def _font(*candidates, size):
 # 全局字号系数：1.25 ≈ 在原版基础上放大两档；以后整体调大调小只改这一个数
 TEXT_SCALE = 1.25
 
+# 全局文字整体下移量（画布像素，1080×1620 基准）。所有文字位置统一加这个值，
+# 只挪位置、不动字号和间距；想再微调上下位置只改这一个数。
+TEXT_OFFSET_Y = 30
+
 
 def _sz(base):
     """按全局系数换算字号/间距"""
@@ -321,15 +325,15 @@ def compose(photo_path, out_path, d):
     draw = ImageDraw.Draw(img, "RGBA")
     f = load_fonts()
 
-    # 顶部三行
-    y0 = 96
+    # 顶部三行（整体位置含全局下移量 TEXT_OFFSET_Y）
+    y0 = 96 + TEXT_OFFSET_Y
     text_with_shadow(draw, (W // 2, y0), date_line, f["date"])
     text_with_shadow(draw, (W // 2, y0 + _sz(92)), lunar_line, f["sub"])
     if jieqi_line:
         text_with_shadow(draw, (W // 2, y0 + _sz(160)), jieqi_line, f["sub"])
 
-    # 金句（约 42% 高度处）
-    qy = int(H * 0.42)
+    # 金句（约 42% 高度处，含全局下移量 TEXT_OFFSET_Y）
+    qy = int(H * 0.42) + TEXT_OFFSET_Y
     lines = q["text"].split("，")
     if len(lines) < 2:
         lines = [q["text"][:len(q["text"])//2], q["text"][len(q["text"])//2:]]
