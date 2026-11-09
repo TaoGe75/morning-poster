@@ -4,3 +4,4 @@ cloud/fonts/
 cloud/_photo.jpg
 __pycache__/
 *.pyc
+cloud/quotes.json.bak

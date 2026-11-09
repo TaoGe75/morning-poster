@@ -114,11 +114,43 @@ def calendar_info(d):
     return date_line, lunar_line, jieqi_line
 
 
+def _season_anchor(d):
+    """返回当季第一天的日期：春 3/1、夏 6/1、秋 9/1、冬 12/1（1、2 月归上年冬）"""
+    m = d.month
+    if m in (3, 4, 5):
+        return date(d.year, 3, 1)
+    if m in (6, 7, 8):
+        return date(d.year, 6, 1)
+    if m in (9, 10, 11):
+        return date(d.year, 9, 1)
+    return date(d.year, 12, 1) if m == 12 else date(d.year - 1, 12, 1)
+
+
+def _season_name(d):
+    m = d.month
+    if m in (3, 4, 5):
+        return "spring"
+    if m in (6, 7, 8):
+        return "summer"
+    if m in (9, 10, 11):
+        return "autumn"
+    return "winter"
+
+
 def pick_quote(d):
+    """当季金句池内做跳跃轮换：一季内不重复，顺序不可预测。"""
     quotes = json.loads((BASE / "quotes.json").read_text(encoding="utf-8"))
-    # 按日期确定性轮换
-    idx = d.toordinal() % len(quotes)
-    return quotes[idx]
+    season = _season_name(d)
+    cands = [q for q in quotes if q.get("season", "any") in (season, "any")]
+    if not cands:
+        cands = quotes
+    n = len(cands)
+    # 黄金比例步长 + 互质校验：k 取遍 0..n-1 时恰好遍历全池且不重复
+    step = max(1, int(n * 0.618))
+    while math.gcd(step, n) != 1:
+        step += 1
+    k = (d - _season_anchor(d)).days
+    return cands[(k * step) % n]
 
 
 # ---------- 图源 ----------
