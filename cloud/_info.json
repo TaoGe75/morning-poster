@@ -1,12 +1,13 @@
 {
-  "date": "2026-11-09",
-  "photo_source": "pool:taoge-城市住宅楼群-蓝天白云",
+  "date": "2026-11-10",
+  "photo_source": "pool:taoge-城市双塔-夜景灯光",
   "quote": {
-    "text": "会当凌绝顶，一览众山小",
-    "author": "杜甫",
-    "work": "望岳"
+    "text": "落霞与孤鹜齐飞，秋水共长天一色",
+    "author": "王勃",
+    "work": "滕王阁序",
+    "season": "autumn"
   },
-  "date_line": "2026.11.09 星期一",
-  "lunar_line": "农历十月初一",
+  "date_line": "2026.11.10 星期二",
+  "lunar_line": "农历十月初二",
   "jieqi_line": "立冬 · 初候 水始冰"
 }
