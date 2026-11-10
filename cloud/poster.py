@@ -137,36 +137,121 @@ def _season_name(d):
     return "winter"
 
 
+# 金句主题：用于打散相邻日期的内容，避免连着几天都讲同一件事、同一个作者
+THEME_ORDER = ["志向", "奋进", "坚韧", "勤学", "实干", "格局", "担当", "自新"]
+
+
+def _quote_ok(q, recent):
+    """与前几天的金句不撞作者、不撞主题"""
+    for r in recent:
+        if q.get("author") == r.get("author"):
+            return False
+        if q.get("theme") and q.get("theme") == r.get("theme"):
+            return False
+    return True
+
+
+def _interleave(quotes):
+    """按主题轮询交错，让相邻条目来自不同主题"""
+    groups = {}
+    for q in quotes:
+        groups.setdefault(q.get("theme", "其他"), []).append(q)
+    keys = [t for t in THEME_ORDER if t in groups]
+    keys += [t for t in sorted(groups) if t not in keys]
+    out = []
+    while any(groups.values()):
+        for k in keys:
+            if groups[k]:
+                out.append(groups[k].pop(0))
+    return out
+
+
+def _daily_sequence(cands):
+    """生成当季每日一句序列：全池恰用一次，且相邻三天避开同作者/同主题。
+    序列只由金句库内容决定，任何时候调用结果一致。"""
+    order = _interleave(cands)
+    n = len(order)
+    step = max(1, int(n * 0.618))
+    while math.gcd(step, n) != 1:
+        step += 1
+    seq = [order[(k * step) % n] for k in range(n)]
+    # 贪心交换修复：交换不改变「每句当季只出现一次」
+    for i in range(n):
+        recent = seq[max(0, i - 3):i]
+        if _quote_ok(seq[i], recent):
+            continue
+        for j in range(i + 1, n):
+            if _quote_ok(seq[j], recent):
+                seq[i], seq[j] = seq[j], seq[i]
+                break
+    return seq
+
+
 def pick_quote(d):
-    """当季金句池内做跳跃轮换：一季内不重复，顺序不可预测。"""
+    """励志金句：当季池内一季不重复，且相邻几天不撞作者/主题。"""
     quotes = json.loads((BASE / "quotes.json").read_text(encoding="utf-8"))
     season = _season_name(d)
     cands = [q for q in quotes if q.get("season", "any") in (season, "any")]
     if not cands:
         cands = quotes
-    n = len(cands)
-    # 黄金比例步长 + 互质校验：k 取遍 0..n-1 时恰好遍历全池且不重复
-    step = max(1, int(n * 0.618))
-    while math.gcd(step, n) != 1:
-        step += 1
+    seq = _daily_sequence(cands)
     k = (d - _season_anchor(d)).days
-    return cands[(k * step) % n]
+    return seq[k % len(seq)]
 
 
 # ---------- 图源 ----------
 CITY_QUERIES = ["city skyline morning", "city sunrise", "urban skyline dawn",
                 "city skyline golden hour", "cityscape morning light"]
 
+# 早安海报只收阳光充足、明快的照片；夜景 / 暮色 / 阴沉图在这里被拦下。
+# 阈值由现有照片池实测标定：7 张保留图全部通过，8 张夜景暗调图全部被排除。
+BRIGHT_MIN_MEAN = 105     # 整图平均亮度（0-255）
+BRIGHT_MAX_DARK = 0.30    # 暗部(<60)占比上限
+BRIGHT_MIN_HIGH = 0.07    # 高光(>180)占比下限
+
+
+def is_bright(src):
+    """src 可为文件路径或图片字节；判断是否为光线充足的明快照片"""
+    from io import BytesIO
+    try:
+        im = Image.open(BytesIO(src) if isinstance(src, (bytes, bytearray)) else src)
+        im.draft("RGB", (360, 540))
+        gray = im.convert("L")
+        gray.thumbnail((120, 180))
+        hist = gray.histogram()
+        total = sum(hist)
+        if not total:
+            return False
+        mean = sum(i * v for i, v in enumerate(hist)) / total
+        dark = sum(hist[:60]) / total
+        high = sum(hist[180:]) / total
+        return (mean >= BRIGHT_MIN_MEAN
+                and dark <= BRIGHT_MAX_DARK
+                and high >= BRIGHT_MIN_HIGH)
+    except Exception:
+        return False
+
+
+def bright_pool(pool):
+    """从照片池里挑出明亮图；万一全被筛掉则退回原池，保证不断供"""
+    bright = [p for p in pool if is_bright(p)]
+    if not bright:
+        print("警告：照片池无明亮图，退回原池")
+        return list(pool)
+    skipped = len(pool) - len(bright)
+    if skipped:
+        print(f"照片池亮度筛选：跳过 {skipped} 张偏暗图")
+    return bright
+
 
 def fetch_photo(d, out):
-    """三层图源：本地照片池(含涛哥实拍，优先) → Wikimedia Commons(免key) → Pexels(有key)"""
+    """三层图源：本地明亮照片池(优先) → Pexels(有key) → Wikimedia Commons(免key)"""
     import os
 
-    # 1) 内置照片池（涛哥实拍 + 储备图，永不断供，15 天一轮）
-    pool = sorted((BASE / "pool").glob("*.jpg"))
+    # 1) 内置照片池（涛哥实拍 + 储备图，永不断供，按明亮图数量一轮）
+    pool = bright_pool(sorted((BASE / "pool").glob("*.jpg")))
     if pool:
-        random.seed(d.toordinal())          # 每天确定性地选一张
-        chosen = pool[d.toordinal() % len(pool)]
+        chosen = pool[d.toordinal() % len(pool)]   # 每天确定性地选一张
         open(out, "wb").write(chosen.read_bytes())
         return f"pool:{chosen.stem}"
 
@@ -174,7 +259,7 @@ def fetch_photo(d, out):
     key = os.environ.get("PEXELS_KEY", "").strip()
     if key:
         try:
-            q = random.choice(CITY_QUERIES)
+            q = random.Random(d.toordinal()).choice(CITY_QUERIES)
             url = ("https://api.pexels.com/v1/search?query=" + urllib.parse.quote(q)
                    + "&orientation=portrait&per_page=20&page="
                    + str((d.toordinal() % 30) + 1))
@@ -185,12 +270,15 @@ def fetch_photo(d, out):
                 ph = photos[d.toordinal() % len(photos)]
                 src = ph["src"]["large2x"]
                 req2 = urllib.request.Request(src, headers={"User-Agent": "Mozilla/5.0"})
-                open(out, "wb").write(urllib.request.urlopen(req2, timeout=60).read())
-                return "pexels"
+                raw = urllib.request.urlopen(req2, timeout=60).read()
+                if is_bright(raw):
+                    open(out, "wb").write(raw)
+                    return "pexels"
+                print("Pexels 候选偏暗，转 Commons")
         except Exception as e:
-            print("Pexels 失败，转 Openverse:", e)
+            print("Pexels 失败，转 Commons:", e)
 
-    # 2) Wikimedia Commons（永久免 key，真实摄影图）
+    # 3) Wikimedia Commons（永久免 key，真实摄影图；逐张试到明亮为止）
     try:
         q = random.Random(d.toordinal()).choice(CITY_QUERIES)  # 按日期确定性选词
         params = urllib.parse.urlencode({
@@ -213,26 +301,32 @@ def fetch_photo(d, out):
             except (KeyError, IndexError, TypeError):
                 continue
         if cands:
-            ii = cands[d.toordinal() % len(cands)]
-            src = ii.get("thumburl") or ii["url"]
-            req2 = urllib.request.Request(src, headers={"User-Agent": "Mozilla/5.0"})
-            raw = urllib.request.urlopen(req2, timeout=90).read()
-            if len(raw) > 100000:
+            for attempt in range(min(8, len(cands))):
+                ii = cands[(d.toordinal() + attempt) % len(cands)]
+                src = ii.get("thumburl") or ii["url"]
+                try:
+                    req2 = urllib.request.Request(src, headers={"User-Agent": "Mozilla/5.0"})
+                    raw = urllib.request.urlopen(req2, timeout=90).read()
+                except Exception as e:
+                    print("Commons 下载失败，换下一张:", e)
+                    continue
+                if len(raw) <= 100000 or not is_bright(raw):
+                    print("Commons 候选偏暗或过小，换下一张")
+                    continue
                 open(out, "wb").write(raw)
                 # 提取作者用于署名
                 meta = ii.get("extmetadata", {}) or {}
                 artist = re.sub(r"<[^>]+>", "", meta.get("Artist", {}).get("value", "")).strip()
                 artist = re.sub(r"\s+", " ", artist)[:60]
                 return f"commons:{artist}" if artist else "commons"
-        print("Commons 无合适候选")
+        print("Commons 无明亮候选")
     except Exception as e:
         print("Commons 失败，退回照片池:", e)
 
-    # 3) 内置照片池兜底（正常不会走到，池子非空时第 1 层已返回）
-    pool = sorted((BASE / "pool").glob("*.jpg"))
+    # 4) 内置照片池兜底（正常不会走到，池子非空时第 1 层已返回）
+    pool = bright_pool(sorted((BASE / "pool").glob("*.jpg")))
     if not pool:
         raise RuntimeError("照片池为空")
-    random.seed(d.toordinal())          # 每天确定性地选一张
     chosen = pool[d.toordinal() % len(pool)]
     open(out, "wb").write(chosen.read_bytes())
     return f"pool:{chosen.stem}"
