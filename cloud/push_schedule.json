@@ -1,0 +1,19 @@
+{
+  "_note": "定时推送清单。time 为北京时间 HH:MM；把 enabled 改成 true 才生效。新增提醒只改这个文件，不用改 workflow。纯文本，markdown 在个人微信里显示不了。云端每半小时检查一次，GitHub 定时偶有延迟。",
+  "items": [
+    {
+      "id": "morning",
+      "time": "08:00",
+      "title": "小舟 · 早间提醒",
+      "body": "（在这里写要提醒的事）",
+      "enabled": false
+    },
+    {
+      "id": "evening",
+      "time": "21:00",
+      "title": "小舟 · 晚间提醒",
+      "body": "（在这里写要提醒的事）",
+      "enabled": false
+    }
+  ]
+}

@@ -1,0 +1,63 @@
+name: cloud-wechat-push
+
+# 独立于早安海报：电脑关机时也能按点把消息推进涛哥的个人微信。
+# 手动触发：GitHub 仓库页 -> Actions -> cloud-wechat-push -> Run workflow，
+#           填 title / body 即可立刻发一条（手机上也能操作）。
+on:
+  schedule:
+    # UTC 每小时第 5、35 分钟 = 北京时间每小时 05、35 分。
+    # 避开 daily.yml 的 0 分 / 30 分，减少并发 push 冲突。
+    - cron: "5,35 * * * *"
+  workflow_dispatch:
+    inputs:
+      title:
+        description: "消息标题（留空则走定时清单）"
+        required: false
+        default: ""
+      body:
+        description: "消息正文"
+        required: false
+        default: ""
+      schedule_id:
+        description: "按定时清单里的 id 发送（如 morning），优先级最高"
+        required: false
+        default: ""
+
+permissions:
+  contents: write
+
+concurrency:
+  group: cloud-push
+  cancel-in-progress: false
+
+jobs:
+  push:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Send to WeChat
+        env:
+          WECOM_WEBHOOK: ${{ secrets.WECOM_WEBHOOK }}
+          PUSH_TITLE: ${{ inputs.title }}
+          PUSH_BODY: ${{ inputs.body }}
+          PUSH_SCHEDULE_ID: ${{ inputs.schedule_id }}
+        run: python cloud/wecom_push.py
+
+      - name: Persist dedup state
+        if: github.event_name == 'schedule'
+        run: |
+          git config user.name "morning-bot"
+          git config user.email "bot@users.noreply.github.com"
+          git add cloud/_push_state.json 2>/dev/null || true
+          if git diff --cached --quiet; then
+            echo "无状态变更"
+          else
+            git commit -m "push state $(date -u -d '+8 hours' +%F)"
+            git push || (git pull --rebase && git push)
+          fi
