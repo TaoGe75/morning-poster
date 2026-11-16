@@ -2,12 +2,14 @@ name: cloud-wechat-push
 
 # 独立于早安海报：电脑关机时也能按点把消息推进涛哥的个人微信。
 # 手动触发：GitHub 仓库页 -> Actions -> cloud-wechat-push -> Run workflow，
-#           填 title / body 即可立刻发一条（手机上也能操作）。
+#           填 title / body 即可立刻发一条（手机上也能操作）；
+#           或填 schedule_id=important_dates 补发当天的日期提醒。
 on:
   schedule:
-    # UTC 每小时第 5、35 分钟 = 北京时间每小时 05、35 分。
+    # UTC 每小时第 5、35、50 分钟 = 北京时间每小时 05、35、50 分。
+    # 50 分是为 08:50「重要日期提醒」加的准点检查；05/35 兼作漏发补投。
     # 避开 daily.yml 的 0 分 / 30 分，减少并发 push 冲突。
-    - cron: "5,35 * * * *"
+    - cron: "5,35,50 * * * *"
   workflow_dispatch:
     inputs:
       title:
@@ -19,7 +21,7 @@ on:
         required: false
         default: ""
       schedule_id:
-        description: "按定时清单里的 id 发送（如 morning），优先级最高"
+        description: "按定时清单里的 id 发送（如 important_dates），优先级最高"
         required: false
         default: ""
 
@@ -44,6 +46,7 @@ jobs:
       - name: Send to WeChat
         env:
           WECOM_WEBHOOK: ${{ secrets.WECOM_WEBHOOK }}
+          IMPORTANT_DATES_JSON: ${{ secrets.IMPORTANT_DATES_JSON }}
           PUSH_TITLE: ${{ inputs.title }}
           PUSH_BODY: ${{ inputs.body }}
           PUSH_SCHEDULE_ID: ${{ inputs.schedule_id }}
