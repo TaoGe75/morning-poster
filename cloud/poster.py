@@ -378,13 +378,14 @@ def load_fonts():
 
 
 def text_with_shadow(draw, xy, text, font, anchor="mm",
-                     fill=(255, 255, 255, 255), shadow=(0, 0, 0, 160),
-                     stroke=0):
+                     fill=(255, 255, 255, 255), shadow=(70, 40, 10, 170),
+                     stroke=0, stroke_fill=(228, 148, 42, 205)):
+    """白字 + 琥珀橙描边 + 深棕投影，亮暗背景都可读且不压抑"""
     x, y = xy
-    draw.text((x + 3, y + 3), text, font=font, fill=shadow, anchor=anchor,
+    draw.text((x + 4, y + 4), text, font=font, fill=shadow, anchor=anchor,
               stroke_width=stroke, stroke_fill=shadow)
     draw.text((x, y), text, font=font, fill=fill, anchor=anchor,
-              stroke_width=stroke, stroke_fill=fill)
+              stroke_width=stroke, stroke_fill=stroke_fill)
 
 
 def draw_logo(img, font_path):
@@ -453,10 +454,10 @@ def compose(photo_path, out_path, d):
 
     # 顶部三行（整体位置含全局下移量 TEXT_OFFSET_Y）
     y0 = 96 + TEXT_OFFSET_Y
-    text_with_shadow(draw, (W // 2, y0), date_line, f["date"])
-    text_with_shadow(draw, (W // 2, y0 + _sz(92)), lunar_line, f["sub"])
+    text_with_shadow(draw, (W // 2, y0), date_line, f["date"], stroke=_sz(2))
+    text_with_shadow(draw, (W // 2, y0 + _sz(92)), lunar_line, f["sub"], stroke=_sz(2))
     if jieqi_line:
-        text_with_shadow(draw, (W // 2, y0 + _sz(160)), jieqi_line, f["sub"])
+        text_with_shadow(draw, (W // 2, y0 + _sz(160)), jieqi_line, f["sub"], stroke=_sz(2))
 
     # 金句（约 42% 高度处，含全局下移量 TEXT_OFFSET_Y）
     qy = int(H * 0.42) + TEXT_OFFSET_Y
@@ -466,9 +467,9 @@ def compose(photo_path, out_path, d):
     step = _sz(96)
     start = qy - (len(lines) - 1) * step // 2 - _sz(24)
     for i, ln in enumerate(lines):
-        text_with_shadow(draw, (W // 2, start + i * step), ln, f["quote"])
+        text_with_shadow(draw, (W // 2, start + i * step), ln, f["quote"], stroke=_sz(3))
     text_with_shadow(draw, (W // 2, start + len(lines) * step + _sz(14)),
-                     f"——{q['author']}《{q['work']}》", f["attr"])
+                     f"——{q['author']}《{q['work']}》", f["attr"], stroke=_sz(2))
 
     draw_logo(img, BASE / "fonts" / "LXGWWenKai-Regular.ttf")
     img.convert("RGB").save(out_path, quality=90)
