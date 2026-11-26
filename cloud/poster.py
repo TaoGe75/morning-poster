@@ -472,7 +472,8 @@ def compose(photo_path, out_path, d):
                      f"——{q['author']}《{q['work']}》", f["attr"], stroke=_sz(2))
 
     draw_logo(img, BASE / "fonts" / "LXGWWenKai-Regular.ttf")
-    img.convert("RGB").save(out_path, quality=90)
+    img.convert("RGB").save(out_path, quality=80, optimize=True,
+                            progressive=True)
     return q
 
 

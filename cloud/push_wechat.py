@@ -46,16 +46,45 @@ def _probe(url, timeout=8):
         return False
 
 
+def _speed(url, timeout=10):
+    """下载前 ~128KB 计时，返回耗时（秒）；失败返回 None"""
+    try:
+        t0 = time.time()
+        req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+        with urllib.request.urlopen(req, timeout=timeout) as r:
+            n = 0
+            while n < 131072:
+                chunk = r.read(32768)
+                if not chunk:
+                    break
+                n += len(chunk)
+        return (time.time() - t0) if n else None
+    except Exception:
+        return None
+
+
 def resolve_image_url(d):
-    """轮询预热，返回第一个真正可访问的图片地址"""
+    """轮询预热；就绪的链路里挑下载最快的一条嵌进消息"""
     if not REPO:
         return ""
     urls = [t.format(repo=REPO, d=d, rev=_rev()) for t in CDN_TEMPLATES]
     for attempt in range(8):          # 最多 8 轮 × 8 秒 ≈ 1 分钟
-        for u in urls:
-            if _probe(u):
-                print("IMG OK:", u)
-                return u
+        ready = [u for u in urls if _probe(u)]
+        if ready:
+            # 挑手机端保存最快的线路
+            scored = []
+            for u in ready:
+                t = _speed(u)
+                print(f"IMG speed {u.split('/')[2]}: "
+                      + (f"{t:.2f}s" if t else "FAIL"))
+                if t:
+                    scored.append((t, u))
+            if scored:
+                scored.sort()
+                print("IMG OK:", scored[0][1], f"({scored[0][0]:.2f}s)")
+                return scored[0][1]
+            print("IMG: 就绪但测速全失败，用主链兜底")
+            return ready[0]
         time.sleep(8)
     print("IMG: 所有 CDN 均未就绪，本次仅推文字")
     return ""
